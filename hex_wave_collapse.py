@@ -153,6 +153,7 @@ class HexWaveFunctionCollapseGrid:
         # update all the neighbors cells options considering the collapse operation
         for neighbor_cell in self.get_neighbors(cell):
             neighbor_cell.update_options(collapsed_cell=cell)
+            print(f"Cell {neighbor_cell.col},{neighbor_cell.row}")
 
     def get_neighbors(self, cell: Cell):
         """
@@ -161,16 +162,20 @@ class HexWaveFunctionCollapseGrid:
         i, j = cell.col, cell.row
         positions = [
             (i, j - 1),
-            (i + 1, j + 1),
-            (i, j + 1),
             (i + 1, j),
-            (i - 1, j),
-            (i - 1, j + 1),
+            (i + 1, j + 1) if i % 2 == 1 else (i + 1, j),
+            (i, j + 1),
+            (i - 1, j + 1) if i % 2 == 1 else (i - 1, j),
+            (i - 1, j) if i % 2 == 1 else (i - 1, j - 1),
         ]
 
         #       1,0  
         # 0,1 - 1,1 - 2,1
         # 0,2 - 1,2 - 2,2
+        
+        #        2,1
+        #  1,1 - 2,2 - 3,1
+        #  1,2 - 2,3 - 3,2
         
         return [
             c for c in self.pending_cells if all(((c.col == i or c.row == j), (c.col, c.row) in positions))

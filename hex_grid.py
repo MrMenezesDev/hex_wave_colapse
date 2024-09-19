@@ -72,7 +72,9 @@ class Grid:
                 
                 # Draw parallel lines
                 self.draw_parallel_shapes(center_x, center_y, edge_x, edge_y,[c1,c2])                
-    
+        self.py5.fill(55)
+        self.py5.text(f'{cell.col},{cell.row}', center_x, center_y)
+        self.py5.fill(255)
   
     def draw_parallel_shapes(self, x, y, x1, y1, colors,  angle=30, factor=-1):
         # Calcular o vetor perpendicular

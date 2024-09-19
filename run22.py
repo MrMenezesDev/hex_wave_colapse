@@ -10,7 +10,7 @@ def settings():
     
 def setup():
     global hex_grid
-    dim = 5
+    dim = 4
     grid = Grid(cols=dim, rows=dim, size=75, py5=py5)
     grid.draw()
     tile1 = Tile(edges=[1, 1, 0, 0, 0, 0]) # 0,0
