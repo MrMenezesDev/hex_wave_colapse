@@ -2,7 +2,7 @@
 from dataclasses import field
 
 
-class Grid:
+class HexGrid:
     """
     Esta classe representa um grid de tiles desenhados na tela.
     """
