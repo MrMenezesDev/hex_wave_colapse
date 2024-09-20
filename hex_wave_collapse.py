@@ -20,7 +20,6 @@ class Cell:
     col: int
     row: int
     dim: int
-    options: list = None
     border: bool = False
     tile: Tile = field(default=None, init=False)  
     state: list = field(default_factory=lambda: [None, None, None, None, None, None])
@@ -28,10 +27,7 @@ class Cell:
             
     def __post_init__(self):
         if self.border:
-            if self.options is None:
-                self.update_border_state()
-            else:
-                self.update_border_options()
+            self.update_border_state()
             
 
     @property
@@ -39,39 +35,21 @@ class Cell:
         return self.tile is not None
 
     def collapse(self):
-        if self.options is None:
-            edges = []
-            for state in self.state:
-                if state is not None:
-                    edges.append(state)
-                else:
-                    edges.append(random.choice(self.cases))
-            self.tile = Tile(edges)    
-        else:
-            self.tile = random.choice(self.options)
-            # print(f"Tile {self.col},{self.row} collapsed to {self.tile.edges}")
-            # print(f"Options: {len(self.options)}")
+        edges = []
+        for state in self.state:
+            if state is not None:
+                edges.append(state)
+            else:
+                edges.append(random.choice(self.cases))
+        self.tile = Tile(edges)    
 
     @property
     def entropy(self):
         if self.collapsed:
             return 0
-        if self.options is None:
-            return len([state for state in self.state if state is not None]) ** len(self.cases)
-        return len(self.options)
-   
-    def update_border_options(self):
-        if self.col == 0:
-            self.options = [tile for tile in self.options if tile.get_side(4) == 0 or tile.get_side(5) == 0]
-        if self.row == 0:
-            self.options = [tile for tile in self.options if tile.get_side(0) == 0]
-        if self.row == self.dim - 1:
-            self.options = [tile for tile in self.options if tile.get_side(1) == 0 or tile.get_side(2) == 0]
-        if self.col == self.dim - 1:
-            self.options = [tile for tile in self.options if tile.get_side(3) == 0]
+        return len([state for state in self.state if state is not None]) ** len(self.cases)
 
-    def update_border_state(self):        
-        # print(f"Celli {self.col},{self.row} state: {self.state}")
+    def update_border_state(self):
         if self.col == 0:
             self.state[4] = 0
             self.state[5] = 0
@@ -88,40 +66,11 @@ class Cell:
             if self.col % 2 != 0:
                 self.state[2] = 0
                 self.state[4] = 0        
-        # print(f"Cellf {self.col},{self.row} state: {self.state}")
              
-    def update_options(self, collapsed_cell):
-        if self.options is not None:
-            ref_tile = collapsed_cell.tile
-            if self.col == collapsed_cell.col:
-                if self.row > collapsed_cell.row:
-                    cond = lambda tile: tile.get_side(0) == ref_tile.get_side(3)
-                else:
-                    cond = lambda tile: tile.get_side(3) == ref_tile.get_side(0)
-            elif self.row == collapsed_cell.row:
-                if self.col > collapsed_cell.col:
-                    cond = lambda tile: tile.get_side(5) == ref_tile.get_side(2)
-                else:
-                    cond = lambda tile: tile.get_side(1) == ref_tile.get_side(4)
-            else:
-                if self.col > collapsed_cell.col:
-                    if self.row < collapsed_cell.row:
-                        cond = lambda tile: tile.get_side(4) == ref_tile.get_side(1)
-                    else:
-                        cond = lambda tile: tile.get_side(5) == ref_tile.get_side(2)
-                elif self.row > collapsed_cell.row:
-                    cond = lambda tile: tile.get_side(1) == ref_tile.get_side(4)
-                else:
-                    cond = lambda tile: tile.get_side(2) == ref_tile.get_side(5)
-            self.options = list(filter(cond, self.options))
-        
+
     def update_state(self, neighbor_number, value):
-        
-        # print(f"Cellis {self.col},{self.row} state: {self.state}")
         index = [3,4,5,0,1,2][neighbor_number]
         self.state[index] = value
-        
-        # print(f"Cellfs {self.col},{self.row} state: {self.state}");
 
 
 @dataclass
@@ -163,20 +112,19 @@ class HexWaveFunctionCollapseGrid:
     Class to represent a grid which will be populated by collapsing their cells.
     """
 
-    tiles: None
     dim: int
     pending_cells: list[Cell] = field(default=list, init=False)
     draw_cell: callable
     border: bool = False
     
     def __post_init__(self):        
-        self.pending_cells = self.cells[:]  # copy of cells, so we can know which aren't collapsed
+        self.pending_cells = self.cells[:] 
         random.shuffle(self.pending_cells)
 
     @cached_property
     def cells(self):
         return [
-            Cell(col=i, row=j, dim=self.dim, options=None if self.tiles is None else self.tiles[:], border=self.border)  # cells initialized with all tiles as possibles
+            Cell(col=i, row=j, dim=self.dim, border=self.border) 
             for i, j in product(range(0, self.dim), range(0, self.dim))
         ]
 
@@ -189,15 +137,10 @@ class HexWaveFunctionCollapseGrid:
         self.collapse_cell(cell)
 
     def collapse_cell(self, cell: Cell):
-        # defines the cell tile among their options
         cell.collapse()
-        # remove the collapsed cell from the pending ones list
         self.pending_cells.remove(cell)
-        # update all the neighbors cells options considering the collapse operation
         for index, neighbor_cell in self.get_neighbors(cell):
-            neighbor_cell.update_options(collapsed_cell=cell)
             neighbor_cell.update_state(neighbor_number=index, value=cell.tile.get_side(index))
-            # print(f"Cell {cell.col},{cell.row} state: {cell.state}")
 
     def get_neighbors(self, cell: Cell):
         """
@@ -225,9 +168,6 @@ class HexWaveFunctionCollapseGrid:
             (index, c) for index, pos in enumerate(positions)
             for c in self.pending_cells if (c.col, c.row) == pos
         ]
-        # print(f"Pending cells: {len(self.pending_cells)}")
-        # print(f"Position: {positions}")
-        # print(f"Neighbors of {cell.col},{cell.row}: {[(c[1].col, c[1].row) for c in neighbors]}")
         return neighbors
 
     @property
@@ -245,5 +185,3 @@ class HexWaveFunctionCollapseGrid:
         for cell in self.cells:
             if cell.collapsed:
                 self.draw_cell(cell)
-                pass# py5.image(cell.tile.image, cell.i * self.w, cell.j * self.h, self.w, self.h)
-            

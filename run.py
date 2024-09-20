@@ -6,29 +6,14 @@ from hex_wave_collapse import HexWaveFunctionCollapseGrid, Tile, Cell
 hex_grid = None
 
 def settings():
-    py5.size(600, 600)  # Defina o tamanho da tela
+    py5.size(1024, 1024)  # Defina o tamanho da tela
     
 def setup():
     global hex_grid
     dim = 5
-    grid = HexGrid(cols=dim, rows=dim, size=50, py5=py5)
+    grid = HexGrid(cols=dim, rows=dim, size=100, py5=py5)
     grid.draw()
-    # tile1 = Tile(edges=[1, 1, 1, 1, 0, 0]) # 0,0
-    # tile2 = Tile(edges=[0, 1, 1, 1, 1, 0]) # 0,1
-    # tile3 = Tile(edges=[0, 0, 1, 1, 1, 1]) # 1,0
-    # tile4 = Tile(edges=[1, 0, 0, 1, 1, 1]) # 1,1
-    # tile5 = Tile(edges=[1, 1, 0, 0, 1, 1]) # 1,1
-    # tile6 = Tile(edges=[1, 1, 1, 0, 0, 1]) # 1,1
-    tile1 = Tile(edges=[1, 0, 0, 0, 0, 0]) # 0,0
-    tile2 = Tile(edges=[0, 1, 0, 0, 0, 0]) # 0,1
-    tile3 = Tile(edges=[0, 0, 1, 0, 0, 0]) # 1,0
-    tile4 = Tile(edges=[0, 0, 0, 1, 0, 0]) # 1,1
-    tile5 = Tile(edges=[0, 0, 0, 0, 1, 0]) # 1,1
-    tile6 = Tile(edges=[0, 0, 0, 0, 0, 1]) # 1,1
-    tile7 = Tile(edges=[0, 0, 0, 0, 0, 0]) # 1,1
-
-    tiles=[tile1, tile2, tile3, tile4, tile5, tile6, tile7]
-    hex_grid = HexWaveFunctionCollapseGrid(dim=dim, tiles=None, draw_cell=grid.draw_cell, border=True)
+    hex_grid = HexWaveFunctionCollapseGrid(dim=dim, draw_cell=grid.draw_cell, border=True)
     hex_grid.start()
     print("started!")
 
