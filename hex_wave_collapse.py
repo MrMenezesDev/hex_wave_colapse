@@ -19,7 +19,7 @@ class Tile:
 class Cell:
     col: int
     row: int
-    dim: int
+    dim: tuple[int, int]
     border: bool = False
     tile: Tile = field(default=None, init=False)  
     state: list = field(default_factory=lambda: [None, None, None, None, None, None])
@@ -53,7 +53,7 @@ class Cell:
         if self.col == 0:
             self.state[4] = 0
             self.state[5] = 0
-        if self.col == self.dim - 1:
+        if self.col == self.dim[0] - 1:
             self.state[1] = 0
             self.state[2] = 0
         if self.row == 0:
@@ -61,7 +61,7 @@ class Cell:
             if self.col % 2 == 0:
                 self.state[1] = 0
                 self.state[5] = 0
-        if self.row == self.dim - 1:
+        if self.row == self.dim[1] - 1:
             self.state[3] = 0
             if self.col % 2 != 0:
                 self.state[2] = 0
@@ -112,7 +112,7 @@ class HexWaveFunctionCollapseGrid:
     Class to represent a grid which will be populated by collapsing their cells.
     """
 
-    dim: int
+    dim: tuple[int, int]
     pending_cells: list[Cell] = field(default=list, init=False)
     draw_cell: callable
     border: bool = False
@@ -125,7 +125,7 @@ class HexWaveFunctionCollapseGrid:
     def cells(self):
         return [
             Cell(col=i, row=j, dim=self.dim, border=self.border) 
-            for i, j in product(range(0, self.dim), range(0, self.dim))
+            for i, j in product(range(0, self.dim[0]), range(0, self.dim[1]))
         ]
 
     def start(self):
