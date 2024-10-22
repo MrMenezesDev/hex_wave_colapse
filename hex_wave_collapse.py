@@ -175,10 +175,11 @@ class HexWaveFunctionCollapseGrid:
         return not self.pending_cells
 
     def collapse(self):
-        """
-        Gets the next pending cell with the lowes entropy and collapses it
-        """
+        if not self.pending_cells:
+            return  # Se não houver células pendentes, retorne imediatamente
+
         next_cell = sorted(self.pending_cells, key=lambda c: c.entropy)[0]
+        # Resto do código da função collapse
         self.collapse_cell(next_cell)
 
     def draw(self):

@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "py5",
+# ]
+# ///
+
 import py5
 
 from hex_grid import HexGrid
@@ -52,3 +59,4 @@ def draw_map(vertexs, color):
 
 
 py5.run_sketch()
+

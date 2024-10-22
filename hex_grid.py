@@ -36,8 +36,8 @@ class HexGrid:
 
     def draw_cell(self, cell):
         """
-        Este método desenha uma linha do centro do hexágono até a borda do hexágono.
-        A linha é desenhada apenas se a célula estiver colapsada.
+        Este método desenha um caminho do centro do hexágono até a borda do hexágono.
+        O caminho é desenhado apenas se a célula estiver colapsada.
         Pode ser desenhadas 0 a 6 linhas, sendo elas 0 o topo.
         Cada edge representa uma direção e o valor 1 indica que a borda está conectada.
         """
