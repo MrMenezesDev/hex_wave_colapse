@@ -13,26 +13,50 @@ import py5
 import numpy as np
 
 from hex_grid import HexGrid
+from utils_py5 import draw_map, draw_vertex
 
-def draw_map(vertices, color):
-    """
-    Desenha o mapa de hexágonos.
-    """
-    py5.fill(color)
-    py5.begin_shape()
-    for vx, vy in vertices:
-        py5.vertex(vx, vy)
-    py5.end_shape(py5.CLOSE)
 
-def draw_vertex(vertices, color):
+
+def settings():
     """
-    Desenha os vértices dos hexágonos.
+    Configura o tamanho da janela.
     """
-    py5.stroke(color)
-    py5.begin_shape()
-    for vx, vy in vertices:
-        py5.vertex(vx, vy)
-    py5.end_shape(py5.CLOSE)
+    py5.size(800, 800)
+
+def setup():
+    """
+    Configura o ambiente inicial do sketch.
+    """
+    global hex_grid, evolution_history, step, direction
+    start_time = time.time()
+    py5.background(255)
+    step = 0
+    direction = 1
+    hex_grid = HexGrid(50, 50, 10, draw_vertex, draw_map)  # Inicialize hex_grid aqui
+    end_time = time.time()
+    print(f"setup function took {end_time - start_time:.4f} seconds")
+
+def draw():
+    """
+    Função de desenho chamada repetidamente pelo py5.
+    """
+    start_time = time.time()
+    global step, direction, evolution_history
+    py5.background(255)
+    if evolution_history:
+        hex_grid.set_state(evolution_history, step)
+        hex_grid.draw()
+        step += direction
+        if step == len(evolution_history) - 1:
+            direction = -1
+            print("Starting evolution in a separate thread")
+            start(update=False)
+        elif step == 0:
+            direction = 1
+            plot_evolution_temp()
+    end_time = time.time()
+    print(f"draw function took {end_time - start_time:.4f} seconds")
+
 
 def apply_rule(rule, state, x, y):
     """
@@ -75,46 +99,6 @@ def evolve(rule, initial_state, steps, temp=False):
         temp_evolution_history = history
     else:
         return history
-
-def settings():
-    """
-    Configura o tamanho da janela.
-    """
-    py5.size(800, 800)
-
-def setup():
-    """
-    Configura o ambiente inicial do sketch.
-    """
-    global hex_grid, evolution_history, step, direction
-    start_time = time.time()
-    py5.background(255)
-    step = 0
-    direction = 1
-    hex_grid = HexGrid(50, 50, 10, draw_vertex, draw_map)  # Inicialize hex_grid aqui
-    end_time = time.time()
-    print(f"setup function took {end_time - start_time:.4f} seconds")
-
-def draw():
-    """
-    Função de desenho chamada repetidamente pelo py5.
-    """
-    start_time = time.time()
-    global step, direction, evolution_history
-    py5.background(255)
-    if evolution_history:
-        hex_grid.set_state(evolution_history, step)
-        hex_grid.draw()
-        step += direction
-        if step == len(evolution_history) - 1:
-            direction = -1
-            print("Starting evolution in a separate thread")
-            start(update=False)
-        elif step == 0:
-            direction = 1
-            plot_evolution_temp()
-    end_time = time.time()
-    print(f"draw function took {end_time - start_time:.4f} seconds")
 
 def plot_evolution(hist):
     """
