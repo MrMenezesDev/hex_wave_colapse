@@ -1,38 +1,40 @@
-from dataclasses import field
 import math
+from dataclasses import dataclass, field
+from typing import List, Callable, Tuple
 
-
+@dataclass
 class HexGrid:
-    """
-    Esta classe representa um grid de tiles desenhados na tela.
-    """
+    cols: int
+    rows: int
+    size: float
+    draw_vertex: Callable
+    draw_map: Callable
+    colors: List[str] = field(default_factory=lambda: ["#666666", "#999999", "#333333"])
+    cells: List = field(default_factory=list)
+    hex_height: float = field(init=False)
+    hex_width: float = field(init=False)
+    offset: float = field(init=False)
 
-    col: int
-    row: int
-    size: int
-    cells: list = field(default_factory=list)
+    def __post_init__(self):
+        self.hex_height = math.sin(math.pi * 2 / 6) * self.size * 2  # Altura do hexágono
+        self.hex_width = self.size * 1.5  # Largura do hexágono
+        self.offset = self.size
 
-    def __init__(self, cols, rows, size, draw_vertex,draw_map, colors=["#666666", "#999999", "#333333"]):
-        self.cols = cols
-        self.rows = rows
-        self.size = size
-        self.draw_vertex = draw_vertex
-        self.draw_map = draw_map
-        self.colors = colors
-        self.hex_height = math.sin(math.pi * 2 / 6) * size * 2  # Altura do hexágono
-        self.hex_width = size * 1.5  # Largura do hexágono
-        self.offset = size
+    def calculate_center(self, col: int, row: int) -> Tuple[float, float]:
+        """
+        Calcula o centro do hexágono baseado na coluna e linha.
+        """
+        offset_y = self.hex_height / 2 if col % 2 == 1 else 0
+        center_x = col * self.hex_width + self.offset
+        center_y = row * self.hex_height + offset_y + self.offset
+        return center_x, center_y
 
     def draw(self):
         for y in range(self.rows):
             for x in range(self.cols):
-                offset_y = self.hex_height / 2 if x % 2 == 1 else 0
-                center_x = x * self.hex_width + self.offset
-                center_y = y * self.hex_height + offset_y + self.offset
+                center_x, center_y = self.calculate_center(x, y)
                 self.draw_hexagon(center_x, center_y, self.size)
-                self.draw_hexagon(
-                    center_x, center_y, self.size * 0.29, math.pi * 2 / 12, self.colors
-                )
+                self.draw_hexagon(center_x, center_y, self.size * 0.29, math.pi * 2 / 12, self.colors)
 
     def draw_cell(self, cell):
         """
@@ -44,17 +46,8 @@ class HexGrid:
         if not cell.collapsed:
             return
 
-        # Centro do hexágono
-        center_x = cell.col * self.hex_width + self.offset
-        center_y = (
-            cell.row * self.hex_height
-            + (self.hex_height / 2 if cell.col % 2 == 1 else 0)
-            + self.offset
-        )
-
-        # Tamanho do hexágono
+        center_x, center_y = self.calculate_center(cell.col, cell.row)
         size = self.size
-        # colors = ["#999999", "#666666", "#333333"]
 
         for i in [3, 5, 1, 2, 4, 0]:
             edge = cell.tile.edges[i]
@@ -122,7 +115,7 @@ class HexGrid:
         # Desenhar a forma paralela
         vertex_parallel = [(x, y), (x1, y1), (x5, y5), (xin, yin)]
         self.draw_vertex(vertex_parallel, colors[1])
-        
+
     def draw_hexagon(self, x, y, size, rotation=0, colors=None):
         # Calcular os vértices do hexágono
         vertices = []
@@ -143,9 +136,8 @@ class HexGrid:
                 ], colors[i])
         else:
             self.draw_map(vertices, 255)
-            
+
         return vertices
-       
 
 def get_rotation_in_line(x1, y1, x2, y2, angle):
     import math
