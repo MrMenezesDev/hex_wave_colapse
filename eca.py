@@ -7,59 +7,12 @@
 # ///
 
 import time
-import math
 import threading
 
 import py5
 import numpy as np
 
-class HexGrid:
-    """
-    Esta classe representa um grid de tiles desenhados na tela.
-    """
-
-    def __init__(self, cols, rows, size, draw_vertex, draw_map, colors=["#666666", "#999999", "#333333"]):
-        self.cols = cols
-        self.rows = rows
-        self.size = size
-        self.draw_vertex = draw_vertex
-        self.draw_map = draw_map
-        self.colors = colors
-        self.hex_height = math.sin(math.pi * 2 / 6) * size * 2  # Altura do hexágono
-        self.hex_width = size * 1.5  # Largura do hexágono
-        self.offset = size
-        self.state = np.zeros((rows, cols), dtype=int)  # Estado inicial das células
-
-    def set_state(self, evolution_history, step):
-        """
-        Define o estado das células com base no evolution_history e no passo atual.
-        """
-        self.state = evolution_history[step]
-
-    def draw(self):
-        """
-        Desenha o grid de hexágonos na tela.
-        """
-        for y in range(self.rows):
-            for x in range(self.cols):
-                offset_y = self.hex_height / 2 if x % 2 == 1 else 0
-                center_x = x * self.hex_width + self.offset
-                center_y = y * self.hex_height + offset_y + self.offset
-                color = 0 if self.state[y, x] == 1 else 255
-                self.draw_hexagon(center_x, center_y, self.size, color)
-
-    def draw_hexagon(self, x, y, size, color):
-        """
-        Desenha um hexágono na posição (x, y) com o tamanho e cor especificados.
-        """
-        vertices = []
-        for i in range(6):
-            angle = (math.pi * 2 / 6 * i)
-            vx = x + math.cos(angle) * size
-            vy = y + math.sin(angle) * size
-            vertices.append((vx, vy))
-
-        self.draw_map(vertices, color)
+from hex_grid import HexGrid
 
 def draw_map(vertices, color):
     """

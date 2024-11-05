@@ -14,11 +14,21 @@ class HexGrid:
     hex_height: float = field(init=False)
     hex_width: float = field(init=False)
     offset: float = field(init=False)
+    state: List[List[int]] = field(default_factory=list)
 
     def __post_init__(self):
         self.hex_height = math.sin(math.pi * 2 / 6) * self.size * 2  # Altura do hexágono
         self.hex_width = self.size * 1.5  # Largura do hexágono
         self.offset = self.size
+    
+        self.state = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
+    
+    def set_state(self, evolution_history, step):
+        """
+        Define o estado das células com base no evolution_history e no passo atual.
+        """
+        self.state = evolution_history[step]
+
 
     def calculate_center(self, col: int, row: int) -> Tuple[float, float]:
         """
@@ -33,8 +43,10 @@ class HexGrid:
         for y in range(self.rows):
             for x in range(self.cols):
                 center_x, center_y = self.calculate_center(x, y)
-                self.draw_hexagon(center_x, center_y, self.size)
-                self.draw_hexagon(center_x, center_y, self.size * 0.29, math.pi * 2 / 12, self.colors)
+                if self.state[y][x] == 1:
+                    self.draw_hexagon(center_x, center_y, self.size, color=1)
+                else:
+                    self.draw_hexagon(center_x, center_y, self.size)
 
     def draw_cell(self, cell):
         """
@@ -53,6 +65,9 @@ class HexGrid:
             edge = cell.tile.edges[i]
             index = [4, -1, 0, 1, 2, 3][i]
             if edge == 1:
+                # Desenhar um hexágono menor no centro
+                self.draw_hexagon(center_x, center_y, self.size * 0.29, math.pi * 2 / 12, self.colors)
+                
                 # Calcular os ângulos dos dois vértices que formam a borda
                 angle1 = math.pi * 2 / 6 * index
                 angle2 = math.pi * 2 / 6 * ((index + 1) % 6)
@@ -116,7 +131,7 @@ class HexGrid:
         vertex_parallel = [(x, y), (x1, y1), (x5, y5), (xin, yin)]
         self.draw_vertex(vertex_parallel, colors[1])
 
-    def draw_hexagon(self, x, y, size, rotation=0, colors=None):
+    def draw_hexagon(self, x, y, size, rotation=0, colors=None, color=255):
         # Calcular os vértices do hexágono
         vertices = []
         for i in range(6):
@@ -135,7 +150,7 @@ class HexGrid:
                     (vertices[i + 1][0], vertices[i + 1][1]),
                 ], colors[i])
         else:
-            self.draw_map(vertices, 255)
+            self.draw_map(vertices, color)
 
         return vertices
 
