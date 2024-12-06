@@ -99,7 +99,8 @@ class HexGrid:
                     if i in color[0]
                     else self.colors[0] if i in color[1] else self.colors[1]
                 )
-                self.draw_parallel_hole_shapes(center_x, center_y, edge_x, edge_y, [c1, c2])
+                if i % 2 == 0:
+                    self.draw_parallel_hole_shapes(center_x, center_y, edge_x, edge_y, [c2, c1])
 
         
     def find_fourth_point(self, A, B, C):
