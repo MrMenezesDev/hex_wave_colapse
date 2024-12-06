@@ -3,6 +3,16 @@ from functools import cached_property
 from itertools import product
 import random
 
+#Create state enum
+
+from enum import Enum
+
+class State(Enum):
+    EMPTY = 0
+    FILLED = 1
+    HOLE = -1
+    MID_BAR = 2
+
 @dataclass
 class Tile:
     """
@@ -10,7 +20,7 @@ class Tile:
     A lista de bordas (edges) representa os tipos possíveis de conexão entre este tile e seus vizinhos.
     A posição da conexão na lista de bordas indica a orientação delas.
     """
-    edges: list
+    edges: list[State]
     
     def get_side(self, side):
         return self.edges[side]
@@ -19,16 +29,19 @@ class Tile:
 class Cell:
     col: int
     row: int
-    dim: tuple[int, int]
+    grid_dimensions: tuple[int, int]
     border: bool = False
     tile: Tile = field(default=None, init=False)  
-    state: list = field(default_factory=lambda: [None, None, None, None, None, None])
-    cases: list = field(default_factory=lambda: [0, 1])
+    state: list = field(default_factory=lambda: [State.EMPTY] * 6)
+    cases: list = field(default_factory=lambda: [State.EMPTY, State.FILLED])
             
     def __post_init__(self):
         if self.border:
             self.update_border_state()
             
+
+    def set_edges(self, edges: list[State]):
+        self.tile = Tile(edges)
 
     @property
     def collapsed(self):
@@ -53,7 +66,7 @@ class Cell:
         if self.col == 0:
             self.state[4] = 0
             self.state[5] = 0
-        if self.col == self.dim[0] - 1:
+        if self.col == self.grid_dimensions[0] - 1:
             self.state[1] = 0
             self.state[2] = 0
         if self.row == 0:
@@ -61,7 +74,7 @@ class Cell:
             if self.col % 2 == 0:
                 self.state[1] = 0
                 self.state[5] = 0
-        if self.row == self.dim[1] - 1:
+        if self.row == self.grid_dimensions[1] - 1:
             self.state[3] = 0
             if self.col % 2 != 0:
                 self.state[2] = 0
@@ -124,7 +137,7 @@ class HexWaveFunctionCollapseGrid:
     @cached_property
     def cells(self):
         return [
-            Cell(col=i, row=j, dim=self.dim, border=self.border) 
+            Cell(col=i, row=j, grid_dimensions=self.dim, border=self.border) 
             for i, j in product(range(0, self.dim[0]), range(0, self.dim[1]))
         ]
 

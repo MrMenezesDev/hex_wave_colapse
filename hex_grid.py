@@ -1,6 +1,7 @@
 import math
 from dataclasses import dataclass, field
 from typing import List, Callable, Tuple
+from hex_wave_collapse import State
 from math_utils import get_rotation_in_line, line_intersection
 
 @dataclass
@@ -11,17 +12,19 @@ class HexGrid:
     draw_vertex: Callable
     draw_map: Callable
     colors: List[str] = field(default_factory=lambda: ["#666666", "#999999", "#333333"])
+    color_bars: List[str] = field(default_factory=lambda:  ["#666666", "#999999", "#333333"])
     cells: List = field(default_factory=list)
     hex_height: float = field(init=False)
     hex_width: float = field(init=False)
     offset: float = field(init=False)
     state: List[List[int]] = field(default_factory=list)
+    central_cube_size: float = 0.3
+    bar_thickness: float = 0.3
 
     def __post_init__(self):
         self.hex_height = math.sin(math.pi * 2 / 6) * self.size * 2  # Altura do hexágono
         self.hex_width = self.size * 1.5  # Largura do hexágono
         self.offset = self.size
-    
         self.state = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
     
     def set_state(self, evolution_history, step):
@@ -49,15 +52,10 @@ class HexGrid:
                 else:
                     self.draw_hexagon(center_x, center_y, self.size)
                     # Desenhar um hexágono menor no centro
-                    self.draw_hexagon(center_x, center_y, self.size * 0.29, math.pi * 2 / 12, self.colors)
+                    self.draw_hexagon(center_x, center_y, self.size * self.central_cube_size, math.pi * 2 / 12, self.colors)
 
+    # Adicione os parâmetros bar_thickness e central_cube_size
     def draw_cell(self, cell):
-        """
-        Este método desenha um caminho do centro do hexágono até a borda do hexágono.
-        O caminho é desenhado apenas se a célula estiver colapsada.
-        Pode ser desenhadas 0 a 6 linhas, sendo elas 0 o topo.
-        Cada edge representa uma direção e o valor 1 indica que a borda está conectada.
-        """
         if not cell.collapsed:
             return
 
@@ -67,24 +65,30 @@ class HexGrid:
         for i in [3, 5, 1, 2, 4, 0]:
             edge = cell.tile.edges[i]
             index = [4, -1, 0, 1, 2, 3][i]
-            if edge == 1:
-                
-                # Calcular os ângulos dos dois vértices que formam a borda
-                angle1 = math.pi * 2 / 6 * index
-                angle2 = math.pi * 2 / 6 * ((index + 1) % 6)
+            angle1 = math.pi * 2 / 6 * index
+            angle2 = math.pi * 2 / 6 * ((index + 1) % 6)
 
-                # Calcular a posição dos dois vértices
-                vertex1_x = center_x + math.cos(angle1) * size
-                vertex1_y = center_y + math.sin(angle1) * size
-                vertex2_x = center_x + math.cos(angle2) * size
-                vertex2_y = center_y + math.sin(angle2) * size
+            vertex1_x = center_x + math.cos(angle1) * size
+            vertex1_y = center_y + math.sin(angle1) * size
+            vertex2_x = center_x + math.cos(angle2) * size
+            vertex2_y = center_y + math.sin(angle2) * size
 
-                # Calcular a posição do ponto médio da borda
-                edge_x = (vertex1_x + vertex2_x) / 2
-                edge_y = (vertex1_y + vertex2_y) / 2
-
-                # Definir as cores das linhas
-                color = [[0, 5, 8, 9], [3, 4, 6, 7], [1, 2, 10, 11]]
+            edge_x = (vertex1_x + vertex2_x) / 2
+            edge_y = (vertex1_y + vertex2_y) / 2
+            color = [[0, 5, 8, 9], [3, 4, 6, 7], [1, 2, 10, 11]]
+            if edge == State.FILLED.value:
+                c1 = (
+                    self.color_bars[2]
+                    if (i + 6) in color[0]
+                    else self.color_bars[0] if (i + 6) in color[1] else self.color_bars[1]
+                )
+                c2 = (
+                    self.color_bars[2]
+                    if i in color[0]
+                    else self.color_bars[0] if i in color[1] else self.color_bars[1]
+                )
+                self.draw_parallel_shapes(center_x, center_y, edge_x, edge_y, [c1, c2], impar=i % 2 > 0)
+            elif edge == State.HOLE.value:
                 c1 = (
                     self.colors[2]
                     if (i + 6) in color[0]
@@ -95,42 +99,95 @@ class HexGrid:
                     if i in color[0]
                     else self.colors[0] if i in color[1] else self.colors[1]
                 )
+                self.draw_parallel_hole_shapes(center_x, center_y, edge_x, edge_y, [c1, c2])
 
-                # Draw parallel lines
-                self.draw_parallel_shapes(center_x, center_y, edge_x, edge_y, [c1, c2])
+        
+    def find_fourth_point(self, A, B, C):
+        # A, B, C são tuplas representando os pontos (x, y)
+        # Calcule os vetores AB e AC
+        AB = (B[0] - A[0], B[1] - A[1])
+        AC = (C[0] - A[0], C[1] - A[1])
+        
+        # Calcule o ponto D
+        D = (C[0] + AB[0], C[1] + AB[1])
+        
+        # Verifique se D é o ponto correto
+        if (D[0] - B[0], D[1] - B[1]) == AC:
+            return D
+        else:
+            # Se não, então o ponto D é (B[0] + AC[0], B[1] + AC[1])
+            return (B[0] + AC[0], B[1] + AC[1])
+        
+    def draw_parallel_shapes(self, x, y, x1, y1, colors, angle=30, factor=-1, impar=False):
+        x, y, x1, y1, perp_x, perp_y, bar_thickness = self.calculate_parallel_parameters(x, y, x1, y1, impar)
+        
+        x3, y3, x5, y5, xi, yi, xin, yin = self.calculate_intersections(x, y, x1, y1, perp_x, perp_y, angle, factor, impar)
 
-        return (f"{cell.col},{cell.row}", center_x, center_y)
+        if impar:
+            colors = colors[::-1]
+        vertex_initial = [(x, y), (x1, y1), (x3, y3), (xi, yi)]
+        self.draw_vertex(vertex_initial, colors[0])
 
-    def draw_parallel_shapes(self, x, y, x1, y1, colors, angle=30, factor=-1):
-        # Calcular o vetor perpendicular
-        dx = x1 - x
-        dy = y1 - y
-        length = (dx**2 + dy**2) ** 0.5
-        perp_x = -dy / length * self.size / 4
-        perp_y = dx / length * self.size / 4
+        vertex_parallel = [(x, y), (x1, y1), (x5, y5), (xin, yin)]
+        self.draw_vertex(vertex_parallel, colors[1])
 
-        # Calcular as novas posições para as linhas paralelas
-        x2, y2 = x + perp_x, y + perp_y
-        x3, y3 = x1 + perp_x, y1 + perp_y
-        x4, y4 = x - perp_x, y - perp_y
-        x5, y5 = x1 - perp_x, y1 - perp_y
+    def draw_parallel_hole_shapes(self, x, y, x1, y1, colors, angle=30, factor=-1):
+        x, y, x1, y1, perp_x, perp_y, bar_thickness = self.calculate_parallel_parameters(x, y, x1, y1)
+        
+        x3, y3, x5, y5, xi, yi, xin, yin = self.calculate_intersections(x, y, x1, y1, perp_x, perp_y, angle, factor)
+
+        x1, y1 = self.find_fourth_point([x, y], [xin, yin], [xi, yi])
+
+        vertex_initial = [(x, y), (x1, y1), (xi, yi)]
+        self.draw_vertex(vertex_initial, colors[0])
+        
+        vertex_parallel = [(x, y), (x1, y1), (xin, yin)]
+        self.draw_vertex(vertex_parallel, colors[1])
+
+    def calculate_parallel_parameters(self, x, y, x1, y1, impar=False):
+        recuo = (self.bar_thickness / self.central_cube_size)
+        direction_x = x1 - x
+        direction_y = y1 - y
+        length = math.sqrt(direction_x**2 + direction_y**2)
+        if length != 0:
+            direction_x /= length
+            direction_y /= length
+
+        bar_thickness = self.size * (self.central_cube_size * math.sqrt(3) / 2) * recuo
+
+        if impar:         
+            x += ((direction_x * self.size * self.central_cube_size)) 
+            y += ((direction_y * self.size * self.central_cube_size))
+        else:
+            x += ((direction_x * self.size * self.central_cube_size) / 2) - ((direction_x * bar_thickness) / 2)
+            y += ((direction_y * self.size * self.central_cube_size) / 2) - ((direction_y * bar_thickness) / 2)
+
+        perp_x = -direction_y * bar_thickness
+        perp_y = direction_x * bar_thickness
+
+        return x, y, x1, y1, perp_x, perp_y, bar_thickness
+
+    def calculate_intersections(self, x, y, x1, y1, perp_x, perp_y, angle, factor, impar=False):
+        if impar:
+            x2, y2 = x - perp_x, y - perp_y 
+            x3, y3 = x1 - perp_x, y1 - perp_y
+            x4, y4 = x + perp_x, y + perp_y
+            x5, y5 = x1 + perp_x, y1 + perp_y
+        else:
+            x2, y2 = x + perp_x, y + perp_y 
+            x3, y3 = x1 + perp_x, y1 + perp_y
+            x4, y4 = x - perp_x, y - perp_y
+            x5, y5 = x1 - perp_x, y1 - perp_y
 
         xi, yi = line_intersection(
             x, y, *get_rotation_in_line(x, y, x2, y2, angle * factor), x3, y3, x2, y2
-        )
-
-        # Desenhar a linha principal
-        vertex_initial = [(x, y), (x1, y1), (x3, y3), (xi, yi)]
-
-        self.draw_vertex(vertex_initial, colors[0])
+        ) # Ponto de interseção cor 0
 
         xin, yin = line_intersection(
             x, y, *get_rotation_in_line(x, y, x4, y4, -angle * factor), x5, y5, x4, y4
-        )
+        ) # Ponto de interseção cor 1
 
-        # Desenhar a forma paralela
-        vertex_parallel = [(x, y), (x1, y1), (x5, y5), (xin, yin)]
-        self.draw_vertex(vertex_parallel, colors[1])
+        return x3, y3, x5, y5, xi, yi, xin, yin
 
     def draw_hexagon(self, x, y, size, rotation=0, colors=None, color=255):
         # Calcular os vértices do hexágono
@@ -154,4 +211,3 @@ class HexGrid:
             self.draw_map(vertices, color)
 
         return vertices
-
